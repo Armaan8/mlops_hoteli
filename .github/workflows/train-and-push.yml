@@ -1,0 +1,47 @@
+name: train-and-push
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'  # every day at 02:00 UTC
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Check out the repo
+      - uses: actions/checkout@v4
+
+      # 2) Set up DVC
+      - uses: iterative/setup-dvc@v2
+
+      # 3) Install Python deps
+      - run: pip install --no-cache-dir -r requirements.txt
+
+      # 4) Pull the exact data & model artifacts
+      - run: dvc pull
+
+      # 5) Run the pipeline
+      - run: python main.py
+
+      # 6) Re-add updated artifacts & metrics pointers
+      - run: dvc add models/occupancy \
+                      models/rewards \
+                      models/pricing \
+                      metrics
+
+      # 7) Push the actual binaries/JSONs to DVC remote
+      - run: dvc push
+
+      # 8) Commit updated .dvc pointers back to Git
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add models/occupancy.dvc \
+                  models/rewards.dvc \
+                  models/pricing.dvc \
+                  metrics.dvc
+          git commit -m "chore: update models & metrics [skip ci]" || echo "No pointer changes"
+          git push origin main
