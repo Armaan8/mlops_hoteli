@@ -1,0 +1,6 @@
+[core]
+    remote = storage
+['remote "github-storage"']
+    url = ../ https:/github.com/Armaan8/Hotel_ML.git
+['remote "storage"']
+    url = ..
