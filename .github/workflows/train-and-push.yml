@@ -14,26 +14,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) Check out the repo with write permissions
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
 
+      # 2) Set up DVC (for local versioning of metrics & models)
       - uses: iterative/setup-dvc@v2
 
+      # 3) Install Python dependencies
       - name: Install dependencies
         run: pip install --no-cache-dir -r requirements.txt
 
-      # ---- removed: dvc pull (we retrain fresh models locally) ----
-
+      # 4) Run the pipeline (trains fresh models locally)
       - name: Run pipeline
         run: python main.py
 
+      # 5) Track updated artifacts and metrics with DVC
       - name: Track updated artifacts
         run: dvc add models/occupancy models/rewards models/pricing metrics
 
+      # 6) Push new artifacts to the DVC remote (optional if configured)
       - name: Push artifacts to DVC remote
         run: dvc push
 
+      # 7) Commit updated DVC pointers back to Git
       - name: Commit updated DVC pointers
         run: |
           git config user.name "GitHub Actions"
