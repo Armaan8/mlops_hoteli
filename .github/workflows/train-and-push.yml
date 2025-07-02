@@ -26,19 +26,23 @@ jobs:
       - name: Install dependencies
         run: pip install --no-cache-dir -r requirements.txt
 
-      # 4) Run the pipeline (trains fresh models locally)
+      # 4) Pull only the master datasets via DVC
+      - name: Pull master data
+        run: dvc pull data/occupancy_dataset.xlsx.dvc data/pricing_dataset.xlsx.dvc
+
+      # 5) Run the pipeline (trains fresh models locally)
       - name: Run pipeline
         run: python main.py
 
-      # 5) Track updated artifacts and metrics with DVC
+      # 6) Track updated artifacts and metrics with DVC
       - name: Track updated artifacts
         run: dvc add models/occupancy models/rewards models/pricing metrics
 
-      # 6) Push new artifacts to the DVC remote (optional if configured)
+      # 7) Push new artifacts to the DVC remote (optional if configured)
       - name: Push artifacts to DVC remote
         run: dvc push
 
-      # 7) Commit updated DVC pointers back to Git
+      # 8) Commit updated DVC pointers back to Git
       - name: Commit updated DVC pointers
         run: |
           git config user.name "GitHub Actions"
