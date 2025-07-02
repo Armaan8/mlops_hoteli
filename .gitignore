@@ -22,3 +22,5 @@ Thumbs.db
 
 logs/
 *.log
+
+mlops-runner-key.json
