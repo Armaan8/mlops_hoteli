@@ -1,0 +1,13 @@
+
+services:
+  mlops:
+    build: .
+    container_name: hotel-mlops
+    volumes:
+      - ./data:/app/data        # master & new_booking excels
+      - ./models:/app/models    # trained model artifacts
+      - ./logs:/app/logs        # pipeline logs
+      - ./metrics:/app/metrics  # JSON metrics
+    environment:
+      - RETRAIN_ON_START=true   # toggle retraining on start
+    restart: unless-stopped
