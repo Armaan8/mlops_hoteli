@@ -1,0 +1,6 @@
+outs:
+- md5: f9d5883804999f6340767ecf998d67d7.dir
+  size: 4667163
+  nfiles: 9
+  hash: md5
+  path: rewards
