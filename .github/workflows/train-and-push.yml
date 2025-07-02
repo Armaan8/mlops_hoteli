@@ -34,15 +34,20 @@ jobs:
       - name: Run pipeline
         run: python main.py
 
-      # 6) Track updated artifacts and metrics with DVC
+      # 6) Ensure artifact directories exist so DVC can add them
+      - name: Prepare artifact directories
+        run: |
+          mkdir -p models/occupancy models/rewards models/pricing metrics
+
+      # 7) Track updated artifacts and metrics with DVC
       - name: Track updated artifacts
         run: dvc add models/occupancy models/rewards models/pricing metrics
 
-      # 7) Push new artifacts to the DVC remote (optional if configured)
+      # 8) Push new artifacts to the DVC remote (optional if configured)
       - name: Push artifacts to DVC remote
         run: dvc push
 
-      # 8) Commit updated DVC pointers back to Git
+      # 9) Commit updated DVC pointers back to Git
       - name: Commit updated DVC pointers
         run: |
           git config user.name "GitHub Actions"
