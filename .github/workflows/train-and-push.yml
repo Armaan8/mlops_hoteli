@@ -23,8 +23,7 @@ jobs:
       - name: Install dependencies
         run: pip install --no-cache-dir -r requirements.txt
 
-      - name: Pull data & models
-        run: dvc pull
+      # ---- removed: dvc pull (we retrain fresh models locally) ----
 
       - name: Run pipeline
         run: python main.py
