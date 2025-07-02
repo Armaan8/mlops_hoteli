@@ -1,31 +1,35 @@
+# ─── Bytecode & caches ───────────────────────────────
 __pycache__/
 *.py[cod]
 
-# Virtual envs
+# ─── Virtual envs & IDE ───────────────────────────────
 env/
 venv/
-
-# IDE
 .idea/
 .vscode/
 
-# Large runtime artefacts
-models/**
-!models/.gitkeep
-data/*.xlsx
+# ─── Data & DVC state ────────────────────────────────
+# DVC folders & cache
 .dvc/
 .dvc/cache/
 
-# OS cruft
-.DS_Store
-Thumbs.db
+# Track Excel and DVC pointers, but not raw binaries
+data/*.xlsx
+!data/*.dvc
 
+# ─── Models folder ────────────────────────────────────
+# Ignore only model binaries, not DVC pointer files
+models/**/*.pkl
+models/**/*.joblib
+models/**/*.npy
+# Allow DVC pointer files and the .gitkeep
+!models/**/*.dvc
+!models/.gitkeep
+
+# ─── Logs & other artifacts ───────────────────────────
 logs/
 *.log
 
-# DVC state
-.dvc/
-*.dvc/cache
-data/*.xlsx
-models/**        # if you plan to track large model files via DVC later
-!models/.gitkeep
+# ─── OS cruft ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
