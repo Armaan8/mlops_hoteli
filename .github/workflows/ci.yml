@@ -11,12 +11,13 @@ jobs:
       with:
         python-version: '3.12'
 
-    - run: pip install -r requirements.txt
+    - name: Install deps
+      run: pip install -r requirements.txt
 
-    # simple smoke-test; replace with pytest later
-    - run: python - <<'PY'
-            import importlib, sys
-            sys.path.append('src')
-            import main
-            print("✅ pipeline imported OK")
-            PY
+    - name: Smoke-test pipeline import
+      run: |
+        python - <<'PY'
+        import sys; sys.path.append('src')
+        import main
+        print("✅  pipeline imported OK")
+        PY
