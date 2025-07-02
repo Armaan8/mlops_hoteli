@@ -23,4 +23,9 @@ Thumbs.db
 logs/
 *.log
 
-mlops-runner-key.json
+# DVC state
+.dvc/
+*.dvc/cache
+data/*.xlsx
+models/**        # if you plan to track large model files via DVC later
+!models/.gitkeep
