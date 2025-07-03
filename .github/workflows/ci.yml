@@ -5,18 +5,30 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with: { python-version: '3.12' }
+      # 1) Check out the repo
+      - uses: actions/checkout@v4
 
-    - name: Install deps
-      run: pip install -r requirements.txt
+      # 2) Set up Python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-    # 🔎 compile every .py file; no data needed
-    - name: Syntax check
-      run: |
-        python -m py_compile $(git ls-files '*.py')
-    
-    - name: Run unit tests
-      run: pytest --maxfail=1 --disable-warnings -q
-    
+      # 3) Install Python dependencies (including pytest)
+      - name: Install deps
+        run: pip install --no-cache-dir -r requirements.txt
+
+      # 4) Set up DVC so we can pull the Excel masters
+      - uses: iterative/setup-dvc@v2
+
+      # 5) Pull only the two master datasets needed for tests
+      - name: Pull master datasets
+        run: dvc pull data/occupancy_dataset.xlsx.dvc data/pricing_dataset.xlsx.dvc
+
+      # 6) Syntax check all .py files
+      - name: Syntax check
+        run: |
+          python -m py_compile $(git ls-files '*.py')
+
+      # 7) Run unit tests
+      - name: Run unit tests
+        run: pytest --maxfail=1 --disable-warnings -q
