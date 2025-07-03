@@ -1,6 +1,6 @@
 # pipeline_runner.py
 import os
-import yaml
+import yaml # type: ignore
 import importlib
 import joblib
 from pathlib import Path
@@ -26,26 +26,26 @@ MODELS_DIR    = Path("models")
 METRICS_DIR   = Path("metrics")
 
 def run_pipeline():
-    print("🔄 [Runner] Starting MLOps pipeline...")
+    print("[Runner] Starting MLOps pipeline...")
     ensure_master_files()
 
     # ─── Ensure metrics folder exists ────────────────────────
     METRICS_DIR.mkdir(exist_ok=True)
 
-    # 1️⃣ Load config
+    # 1️Load config
     try:
         cfg = yaml.safe_load(open(CONFIG_PATH))
         model_names = cfg["models"]
-        print(f"▶️  Models to run: {model_names}")
+        print(f"Models to run: {model_names}")
     except Exception as e:
-        print("❌ Failed to load config.yml:", e)
+        print("Failed to load config.yml:", e)
         return
 
-    # 2️⃣ Load master data
+    # 2️Load master data
     occ_df = load_last_500_rows(OCC_MASTER)
     pri_df = load_last_500_rows(PRI_MASTER)
 
-    # 3️⃣ Train or load each model
+    # 3️Train or load each model
     results = {}
     for name in model_names:
         print(f"   • Model: {name}")
@@ -74,12 +74,12 @@ def run_pipeline():
     metrics_path = METRICS_DIR / f"{timestamp}_metrics.json"
     with open(metrics_path, "w") as f:
         json.dump(metrics_payload, f, default=str, indent=2)
-    print(f"📈 Saved run metrics to {metrics_path}")
+    print(f"Saved run metrics to {metrics_path}")
 
-    # 4️⃣ Predict & append if booking exists
+    # Predict & append if booking exists
     if NEW_BOOK_PATH.exists():
         booking = load_new_booking(NEW_BOOK_PATH)
-        print("📥 Booking found → running predictions…")
+        print("Booking found → running predictions…")
 
         occ_cls = importlib.import_module("src.occupancy_model")\
                     .predict(locals()["occupancy_model"], booking)
@@ -119,11 +119,11 @@ def run_pipeline():
             results["rewards_metrics"],
             results["pricing_metrics"],
         )
-        print("✅ Predictions appended and logged.")
+        print("Predictions appended and logged.")
     else:
-        print("ℹ️  No new_booking.xlsx — training-only run.")
+        print("No new_booking.xlsx — training-only run.")
 
-    print("🏁 [Runner] Finished.")
+    print("[Runner] Finished.")
 
 if __name__ == "__main__":
     run_pipeline()
