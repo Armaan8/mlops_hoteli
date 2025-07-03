@@ -1,0 +1,6 @@
+outs:
+- md5: 49fb355c28bad742e2e236bfb2be8526.dir
+  size: 2546
+  nfiles: 4
+  hash: md5
+  path: pricing
