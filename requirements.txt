@@ -6,6 +6,6 @@ joblib>=1.4.2
 openpyxl>=3.1.5
 PyYAML>=6.0.2
 jsonschema 
-
+openpyxl>=3.1.5
 dvc>=2.50.0
 click>=8.1.8

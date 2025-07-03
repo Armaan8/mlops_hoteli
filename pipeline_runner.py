@@ -1,11 +1,11 @@
 # pipeline_runner.py
 import os
-import yaml # type: ignore
 import importlib
 import joblib
 from pathlib import Path
 import json
 from datetime import datetime
+import yaml
 
 import pandas as pd
 from src.data_loader import (

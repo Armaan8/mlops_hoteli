@@ -10,8 +10,7 @@ def get_mtime(path):
     return os.path.getmtime(path) if os.path.exists(path) else 0
 
 def run_pipeline():
-    print("🔁 New booking detected. Running pipeline...")
-    # Use the venv Python if inside Docker it'll be default
+    print("New booking detected. Running pipeline...")
     subprocess.run(["python", "main.py"], check=True)
 
 if __name__ == "__main__":
@@ -25,5 +24,5 @@ if __name__ == "__main__":
                 last = curr
                 run_pipeline()
         except KeyboardInterrupt:
-            print("🛑 Watcher stopped.")
+            print("Watcher stopped.")
             break
