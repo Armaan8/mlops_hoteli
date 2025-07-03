@@ -1,6 +1,6 @@
 outs:
-- md5: a156e38789556272d11d7f9f3890a6e3.dir
-  size: 370395
+- md5: 21f23da0cd466e23ec584b13fc4ffb29.dir
+  size: 272059
   nfiles: 3
   hash: md5
   path: occupancy
