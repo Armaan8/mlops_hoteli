@@ -1,0 +1,4 @@
+models:
+  - occupancy
+  - rewards
+  - pricing

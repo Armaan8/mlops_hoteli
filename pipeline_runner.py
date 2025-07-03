@@ -1,85 +1,129 @@
 # pipeline_runner.py
+import os
+import yaml
+import importlib
+import joblib
 from pathlib import Path
-import pandas as pd
+import json
+from datetime import datetime
 
+import pandas as pd
 from src.data_loader import (
+    ensure_master_files,
     load_last_500_rows,
     load_new_booking,
     append_to_master,
-    ensure_master_files,
 )
+from src.utils import log_results
 
-from src.occupancy_model import (
-    train_and_save as train_occ,
-    predict        as predict_occ,
-    make_occ_features,
-)
-from src.rewards_model  import (
-    train_and_save as train_rew,
-    predict        as predict_rew,
-)
-from src.pricing_model  import (
-    train_and_save as train_price,
-    predict        as predict_price,
-    make_pricing_features,
-)
+# ─── Paths & Config ─────────────────────────────────────────
+CONFIG_PATH   = Path("config.yml")
+DATA_DIR      = Path("data")
+OCC_MASTER    = DATA_DIR / "occupancy_dataset.xlsx"
+PRI_MASTER    = DATA_DIR / "pricing_dataset.xlsx"
+NEW_BOOK_PATH = DATA_DIR / "new_booking.xlsx"
+MODELS_DIR    = Path("models")
+METRICS_DIR   = Path("metrics")
 
-# ───────────────────────────────────────────────────────────────
-# 0️⃣  guarantee base folders + empty master files exist
-ensure_master_files()
+def run_pipeline():
+    print("🔄 [Runner] Starting MLOps pipeline...")
+    ensure_master_files()
 
-# booking file path
-BOOKING_PATH = Path("data/new_booking.xlsx")
-has_booking  = BOOKING_PATH.exists()
+    # ─── Ensure metrics folder exists ────────────────────────
+    METRICS_DIR.mkdir(exist_ok=True)
 
-# ───────────────────────────────────────────────────────────────
-# 1️⃣  load master datasets (last 500 rows each)
-occ_df     = load_last_500_rows("data/occupancy_dataset.xlsx")
-pricing_df = load_last_500_rows("data/pricing_dataset.xlsx")
+    # 1️⃣ Load config
+    try:
+        cfg = yaml.safe_load(open(CONFIG_PATH))
+        model_names = cfg["models"]
+        print(f"▶️  Models to run: {model_names}")
+    except Exception as e:
+        print("❌ Failed to load config.yml:", e)
+        return
 
-# ───────────────────────────────────────────────────────────────
-# 2️⃣  always retrain (training-only run is still useful nightly / in CI)
-occ_model,   occ_metrics   = train_occ(occ_df)
-rew_model,   rew_metrics   = train_rew(pricing_df)
-price_model, price_metrics = train_price(pricing_df)
+    # 2️⃣ Load master data
+    occ_df = load_last_500_rows(OCC_MASTER)
+    pri_df = load_last_500_rows(PRI_MASTER)
 
-# ───────────────────────────────────────────────────────────────
-# 3️⃣  predict & append **only** when a booking file is present
-if has_booking:
-    new_booking = load_new_booking(str(BOOKING_PATH))
+    # 3️⃣ Train or load each model
+    results = {}
+    for name in model_names:
+        print(f"   • Model: {name}")
+        module = importlib.import_module(f"src.{name}_model")
 
-    # ─ predictions ─
-    occ_cls = predict_occ  (occ_model,   new_booking)
-    rew_cls = predict_rew  (rew_model,   new_booking)
-    price   = predict_price(price_model, new_booking)
+        retrain_flag = os.getenv("RETRAIN_ON_START", "true").lower() == "true"
+        latest_file  = MODELS_DIR / name / "latest.pkl"
 
-    # ─ append engineered occupancy row ─
-    occ_row = make_occ_features(new_booking)
-    occ_row["occ_class"] = occ_cls
-    occ_row = occ_row.reindex(
-        occ_df.columns.tolist() + ["occ_class"], axis=1, fill_value=pd.NA
-    )
-    append_to_master("data/occupancy_dataset.xlsx", occ_row)
+        if not retrain_flag and latest_file.exists():
+            print(f"     – Skipping retrain (found latest.pkl)")
+            model = joblib.load(latest_file)
+            metrics = None
+        else:
+            df = occ_df if name == "occupancy" else pri_df
+            model, metrics = module.train_and_save(df)
+            print(f"     – Trained {name}: {metrics}")
 
-    # ─ append engineered pricing row ─
-    price_row = make_pricing_features(new_booking)
-    price_row["points_class"] = rew_cls
-    price_row["final_price"]  = price
-    price_row = price_row.reindex(
-        pricing_df.columns.tolist() + ["points_class", "final_price"],
-        axis=1, fill_value=pd.NA,
-    )
-    append_to_master("data/pricing_dataset.xlsx", price_row)
+        results[f"{name}_metrics"] = metrics
+        locals()[f"{name}_model"] = model
 
-    # ─ console summary ─
-    print("✅ Occupancy Class:", occ_cls)
-    print("✅ Points Class:   ", rew_cls)
-    print("✅ Final Room Price: $", round(price, 2))
-else:
-    print("📭  No new_booking.xlsx found — ran training only.")
+    # ─── Write out metrics JSON ───────────────────────────────
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    metrics_payload = {
+        name: results[f"{name}_metrics"] for name in model_names
+    }
+    metrics_path = METRICS_DIR / f"{timestamp}_metrics.json"
+    with open(metrics_path, "w") as f:
+        json.dump(metrics_payload, f, default=str, indent=2)
+    print(f"📈 Saved run metrics to {metrics_path}")
 
-# always show metrics
-print("📊 Occupancy Metrics:", occ_metrics)
-print("📊 Rewards Accuracy: ", rew_metrics["accuracy"])
-print("📊 Pricing Metrics:  ", price_metrics)
-print("✅ Pipeline Execution Completed.")
+    # 4️⃣ Predict & append if booking exists
+    if NEW_BOOK_PATH.exists():
+        booking = load_new_booking(NEW_BOOK_PATH)
+        print("📥 Booking found → running predictions…")
+
+        occ_cls = importlib.import_module("src.occupancy_model")\
+                    .predict(locals()["occupancy_model"], booking)
+        rew_cls = importlib.import_module("src.rewards_model")\
+                    .predict(locals()["rewards_model"], booking)
+        price   = importlib.import_module("src.pricing_model")\
+                    .predict(locals()["pricing_model"], booking)
+
+        print(f"   → Occ: {occ_cls}, Rew: {rew_cls}, Price: {price}")
+
+        # Append occupancy row
+        occ_row = importlib.import_module("src.occupancy_model")\
+                    .make_occ_features(booking)
+        occ_row["occ_class"] = occ_cls
+        occ_row = occ_row.reindex(
+            occ_df.columns.tolist() + ["occ_class"], axis=1, fill_value=pd.NA
+        )
+        append_to_master(OCC_MASTER, occ_row)
+
+        # Append pricing row
+        price_row = importlib.import_module("src.pricing_model")\
+                      .make_pricing_features(booking)
+        price_row["points_class"] = rew_cls
+        price_row["final_price"]  = price
+        price_row = price_row.reindex(
+            pri_df.columns.tolist() + ["points_class", "final_price"],
+            axis=1, fill_value=pd.NA
+        )
+        append_to_master(PRI_MASTER, price_row)
+
+        # Log out
+        log_results(
+            occ_cls,
+            rew_cls,
+            price,
+            results["occupancy_metrics"],
+            results["rewards_metrics"],
+            results["pricing_metrics"],
+        )
+        print("✅ Predictions appended and logged.")
+    else:
+        print("ℹ️  No new_booking.xlsx — training-only run.")
+
+    print("🏁 [Runner] Finished.")
+
+if __name__ == "__main__":
+    run_pipeline()

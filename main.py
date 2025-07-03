@@ -1,8 +1,11 @@
 # main.py
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
+import sys, os
+# ensure src/ is discoverable
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-print("🔄 Starting MLOps Pipeline...")
-import pipeline_runner
-print("✅ Pipeline Execution Completed.")
+from pipeline_runner import run_pipeline
+
+if __name__ == "__main__":
+    print("🔔 [Main] Launching pipeline…")
+    run_pipeline()
+    print("🔔 [Main] Done.")

@@ -8,11 +8,6 @@ venv/
 .idea/
 .vscode/
 
-# ─── Data & DVC state ────────────────────────────────
-# DVC folders & cache
-.dvc/
-.dvc/cache/
-
 # Track Excel and DVC pointers, but not raw binaries
 data/*.xlsx
 !data/*.dvc
@@ -33,3 +28,4 @@ logs/
 # ─── OS cruft ─────────────────────────────────────────
 .DS_Store
 Thumbs.db
+/metrics

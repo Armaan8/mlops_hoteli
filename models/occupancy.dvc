@@ -1,6 +1,0 @@
-outs:
-- md5: 3f56e5bf76dbd87d6c4cb2baf976a162.dir
-  size: 370395
-  nfiles: 3
-  hash: md5
-  path: occupancy
